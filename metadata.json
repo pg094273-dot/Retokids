@@ -1,0 +1,6 @@
+{
+  "name": "RetoKids - Desafíos en Acción",
+  "description": "Juego de desafíos interactivo para niños con retos físicos, de risa e ingenio, temporizador dinámico con sonidos y marcador de puntos.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,1300 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>RetoKids - Desafíos en Acción con Temporizador</title>
+  
+  <!-- Optimización iOS / PWA -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RetoKids">
+  <meta name="theme-color" content="#4f46e5">
+
+  <style>
+    :root {
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
+      --accent: #f59e0b;
+      --success: #10b981;
+      --danger: #ef4444;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --safe-top: env(safe-area-inset-top, 20px);
+      --safe-bottom: env(safe-area-inset-bottom, 20px);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      -webkit-tap-highlight-color: transparent;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    html, body {
+      width: 100%;
+      height: 100dvh;
+      overflow-x: hidden;
+      overflow-y: hidden;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--bg);
+      color: var(--text);
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      width: 100vw;
+      height: 100dvh;
+      max-width: 600px;
+      margin: 0 auto;
+      padding-top: var(--safe-top);
+      padding-bottom: var(--safe-bottom);
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Cabecera */
+    header {
+      padding: 12px 16px 8px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--card-bg);
+      border-bottom: 2px solid #e2e8f0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 900;
+      font-size: 1.3rem;
+      color: var(--primary-dark);
+    }
+
+    .brand span {
+      background: #eef2ff;
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      color: var(--primary);
+    }
+
+    .tab-bar {
+      display: flex;
+      background: #e2e8f0;
+      border-radius: 12px;
+      padding: 3px;
+      gap: 4px;
+    }
+
+    .tab-btn {
+      border: none;
+      background: transparent;
+      padding: 6px 14px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      border-radius: 9px;
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: #fff;
+      color: var(--primary);
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+
+    /* Contenido */
+    main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 14px 16px;
+      display: flex;
+      flex-direction: column;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .view {
+      display: none;
+      flex-direction: column;
+      height: 100%;
+      gap: 12px;
+    }
+
+    .view.active {
+      display: flex;
+    }
+
+    /* Tarjeta Reto */
+    .challenge-card {
+      background: var(--card-bg);
+      border-radius: 24px;
+      padding: 18px 18px;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+      border: 3px solid #e0e7ff;
+      position: relative;
+      animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.92); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    .badge-row {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-bottom: 4px;
+    }
+
+    .badge {
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: #e0e7ff;
+      color: var(--primary);
+    }
+
+    .badge.place {
+      background: #fef3c7;
+      color: #b45309;
+    }
+
+    .badge.time-badge {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #fca5a5;
+    }
+
+    .challenge-emoji {
+      font-size: 3.6rem;
+      margin: 4px 0;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.1));
+    }
+
+    .challenge-title {
+      font-size: 1.35rem;
+      font-weight: 800;
+      color: #1e1b4b;
+      margin-bottom: 4px;
+    }
+
+    .challenge-desc {
+      font-size: 1.05rem;
+      line-height: 1.4;
+      font-weight: 600;
+      color: #475569;
+      margin-bottom: 4px;
+    }
+
+    /* =========================================
+       NUEVO: TEMPORIZADOR INTEGRADO EN RETO
+    ========================================= */
+    .timer-container {
+      width: 100%;
+      background: #f1f5f9;
+      border: 2px solid #cbd5e1;
+      border-radius: 18px;
+      padding: 10px 14px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+      margin: 4px 0;
+      transition: all 0.3s ease;
+    }
+
+    .timer-container.running {
+      background: #eef2ff;
+      border-color: #818cf8;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+    }
+
+    .timer-container.urgent {
+      background: #fef2f2;
+      border-color: #f87171;
+      animation: pulseBorder 0.8s infinite alternate;
+    }
+
+    @keyframes pulseBorder {
+      0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+      100% { box-shadow: 0 0 16px 4px rgba(239, 68, 68, 0.3); }
+    }
+
+    .timer-container.finished {
+      background: #ecfdf5;
+      border-color: #34d399;
+    }
+
+    .timer-header {
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 0.75rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      color: #64748b;
+    }
+
+    .timer-body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .timer-dial-wrapper {
+      position: relative;
+      width: 72px;
+      height: 72px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .timer-svg {
+      width: 100%;
+      height: 100%;
+      transform: rotate(-90deg);
+    }
+
+    .timer-circle-bg {
+      fill: none;
+      stroke: #e2e8f0;
+      stroke-width: 6;
+    }
+
+    .timer-circle-progress {
+      fill: none;
+      stroke: var(--primary);
+      stroke-width: 6;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.3s linear, stroke 0.3s ease;
+    }
+
+    .timer-dial-text {
+      position: absolute;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-weight: 900;
+      font-size: 1.4rem;
+      color: var(--text);
+    }
+
+    .timer-dial-unit {
+      font-size: 0.65rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-top: -3px;
+    }
+
+    .timer-controls {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .btn-timer-main {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 12px;
+      font-weight: 800;
+      font-size: 0.95rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      box-shadow: 0 3px 8px rgba(99, 102, 241, 0.3);
+      transition: transform 0.1s, background-color 0.2s;
+    }
+
+    .btn-timer-main:active {
+      transform: scale(0.95);
+    }
+
+    .btn-timer-main.running {
+      background: #d97706;
+      box-shadow: 0 3px 8px rgba(217, 119, 6, 0.3);
+    }
+
+    .btn-timer-main.finished {
+      background: #059669;
+    }
+
+    .timer-sub-controls {
+      display: flex;
+      gap: 4px;
+      justify-content: center;
+    }
+
+    .btn-timer-small {
+      background: #fff;
+      border: 1px solid #cbd5e1;
+      padding: 4px 8px;
+      border-radius: 8px;
+      font-weight: 800;
+      font-size: 0.75rem;
+      cursor: pointer;
+      color: #334155;
+    }
+
+    .btn-timer-small:active {
+      transform: scale(0.92);
+      background: #f1f5f9;
+    }
+
+    .timer-status-msg {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #475569;
+      text-align: center;
+    }
+
+    /* Botones de acción */
+    .action-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-top: 6px;
+      width: 100%;
+    }
+
+    .award-title {
+      font-size: 0.8rem;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-align: center;
+      text-transform: uppercase;
+    }
+
+    .players-quick-bar {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding: 4px 2px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .quick-player-btn {
+      background: #fff;
+      border: 2px solid #cbd5e1;
+      padding: 6px 12px;
+      border-radius: 50px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-weight: 800;
+      font-size: 0.85rem;
+      cursor: pointer;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      transition: transform 0.1s;
+    }
+
+    .quick-player-btn:active {
+      transform: scale(0.95);
+      background: #dcfce7;
+      border-color: var(--success);
+    }
+
+    .btn-main {
+      background: linear-gradient(135deg, #6366f1, #4f46e5);
+      color: white;
+      border: none;
+      padding: 14px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      border-radius: 18px;
+      cursor: pointer;
+      box-shadow: 0 4px 14px rgba(79, 70, 229, 0.4);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.1s;
+    }
+
+    .btn-main:active {
+      transform: scale(0.97);
+    }
+
+    /* Marcador y Jugadores */
+    .players-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      overflow-y: auto;
+    }
+
+    .player-card {
+      background: var(--card-bg);
+      border-radius: 18px;
+      padding: 12px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.04);
+      border: 2px solid #f1f5f9;
+    }
+
+    .player-info {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .player-avatar {
+      width: 48px;
+      height: 48px;
+      border-radius: 50%;
+      background: #eef2ff;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.7rem;
+      overflow: hidden;
+      border: 2px solid #c7d2fe;
+    }
+
+    .player-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .player-name {
+      font-weight: 800;
+      font-size: 1.05rem;
+    }
+
+    .score-controls {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .score-badge {
+      font-size: 1.3rem;
+      font-weight: 900;
+      color: var(--primary-dark);
+      min-width: 36px;
+      text-align: center;
+    }
+
+    .btn-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: none;
+      font-size: 1.3rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+    }
+
+    .btn-plus {
+      background: #dcfce7;
+      color: #15803d;
+    }
+
+    .btn-minus {
+      background: #fee2e2;
+      color: #b91c1c;
+    }
+
+    /* Modal / Formulario Agregar Jugador */
+    .add-player-box {
+      background: #fff;
+      padding: 16px;
+      border-radius: 20px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+      border: 2px dashed #cbd5e1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 12px 14px;
+      border-radius: 12px;
+      border: 2px solid #cbd5e1;
+      font-size: 1rem;
+      font-weight: 600;
+      outline: none;
+    }
+
+    input[type="text"]:focus {
+      border-color: var(--primary);
+    }
+
+    .avatar-selector {
+      display: flex;
+      gap: 6px;
+      overflow-x: auto;
+      padding-bottom: 4px;
+    }
+
+    .avatar-option {
+      font-size: 1.6rem;
+      padding: 6px;
+      background: #f1f5f9;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 2px solid transparent;
+    }
+
+    .avatar-option.selected {
+      border-color: var(--primary);
+      background: #e0e7ff;
+    }
+
+    .custom-file-upload {
+      border: 2px dashed #94a3b8;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 8px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    .btn-sec {
+      background: var(--primary);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 12px;
+      font-weight: 800;
+      cursor: pointer;
+    }
+
+    /* Filtros Rápidos */
+    .filter-bar {
+      display: flex;
+      gap: 6px;
+    }
+
+    .filter-chip {
+      padding: 5px 12px;
+      border-radius: 20px;
+      background: #e2e8f0;
+      border: none;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+    }
+
+    .filter-chip.active {
+      background: #1e293b;
+      color: white;
+    }
+
+    /* Canvas para confeti */
+    #confetti {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: 999;
+    }
+  </style>
+</head>
+<body>
+
+  <canvas id="confetti"></canvas>
+
+  <div id="app">
+    <!-- Header -->
+    <header>
+      <div class="brand">
+        ⚡ RetoKids
+        <span id="challenge-counter">0/110</span>
+      </div>
+      <div class="tab-bar">
+        <button class="tab-btn active" onclick="switchView('retos')">Retos</button>
+        <button class="tab-btn" onclick="switchView('jugadores')">Puntos 🏆</button>
+      </div>
+    </header>
+
+    <!-- Contenido -->
+    <main>
+      <!-- VISTA 1: RETOS -->
+      <div id="view-retos" class="view active">
+        <!-- Filtros de Lugar -->
+        <div class="filter-bar">
+          <button class="filter-chip active" onclick="setFilter('todos', this)">Todos</button>
+          <button class="filter-chip" onclick="setFilter('casa', this)">🏠 Solo Casa</button>
+          <button class="filter-chip" onclick="setFilter('calle', this)">🌳 Solo Calle</button>
+        </div>
+
+        <!-- Tarjeta de Reto -->
+        <div class="challenge-card" id="card">
+          <div class="badge-row">
+            <span class="badge" id="c-category">Movimiento</span>
+            <span class="badge place" id="c-place">🏠 En Casa</span>
+            <span class="badge time-badge" id="c-time-badge" style="display:none;">⏱️ 10s</span>
+          </div>
+
+          <div class="challenge-emoji" id="c-emoji">🚀</div>
+          <h2 class="challenge-title" id="c-title">Cargando Reto...</h2>
+          <p class="challenge-desc" id="c-desc">¡Prepárate para la diversión!</p>
+
+          <!-- NUEVO: Temporizador Visual para retos con tiempo -->
+          <div class="timer-container" id="timer-box" style="display: none;">
+            <div class="timer-header">
+              <span>⏱️ Temporizador</span>
+              <span id="timer-badge-val" style="font-weight:900;">10s</span>
+            </div>
+            <div class="timer-body">
+              <div class="timer-dial-wrapper">
+                <svg class="timer-svg" viewBox="0 0 80 80">
+                  <circle class="timer-circle-bg" cx="40" cy="40" r="34"></circle>
+                  <circle class="timer-circle-progress" id="timer-svg-circle" cx="40" cy="40" r="34" stroke-dasharray="213.6" stroke-dashoffset="0"></circle>
+                </svg>
+                <div class="timer-dial-text">
+                  <span id="timer-digits">10</span>
+                  <span class="timer-dial-unit">seg</span>
+                </div>
+              </div>
+
+              <div class="timer-controls">
+                <button class="btn-timer-main" id="timer-main-btn" onclick="toggleTimer()">
+                  <span id="timer-btn-icon">▶️</span> <span id="timer-btn-text">¡Iniciar!</span>
+                </button>
+                <div class="timer-sub-controls">
+                  <button class="btn-timer-small" onclick="resetTimer()" title="Reiniciar">🔄</button>
+                  <button class="btn-timer-small" onclick="adjustTimer(-5)" title="Restar 5s">-5s</button>
+                  <button class="btn-timer-small" onclick="adjustTimer(5)" title="Sumar 5s">+5s</button>
+                </div>
+              </div>
+            </div>
+            <div class="timer-status-msg" id="timer-msg">Pulsa ¡Iniciar! cuando estés preparado</div>
+          </div>
+
+          <!-- Asignar punto rápido -->
+          <div class="action-panel">
+            <div class="award-title">¿Quién completó el reto? (+1 punto)</div>
+            <div class="players-quick-bar" id="quick-players">
+              <!-- Se llena con JS -->
+            </div>
+          </div>
+        </div>
+
+        <button class="btn-main" onclick="nextChallenge()">
+          🎲 ¡Siguiente Reto Aleatorio!
+        </button>
+      </div>
+
+      <!-- VISTA 2: JUGADORES / MARCADOR -->
+      <div id="view-jugadores" class="view">
+        <!-- Agregar Jugador -->
+        <div class="add-player-box">
+          <div class="input-row">
+            <input type="text" id="player-name" placeholder="Nombre (ej. Lucas o Sofía)" maxlength="15">
+            <button class="btn-sec" onclick="addPlayer()">Añadir</button>
+          </div>
+          
+          <div style="font-size: 0.8rem; font-weight: 700; color: #64748b;">Elige un icono:</div>
+          <div class="avatar-selector" id="avatar-picker">
+            <div class="avatar-option selected" onclick="pickEmoji('🦁', this)">🦁</div>
+            <div class="avatar-option" onclick="pickEmoji('🚀', this)">🚀</div>
+            <div class="avatar-option" onclick="pickEmoji('🦄', this)">🦄</div>
+            <div class="avatar-option" onclick="pickEmoji('🦖', this)">🦖</div>
+            <div class="avatar-option" onclick="pickEmoji('⚡', this)">⚡</div>
+            <div class="avatar-option" onclick="pickEmoji('🍕', this)">🍕</div>
+            <div class="avatar-option" onclick="pickEmoji('🐶', this)">🐶</div>
+            <div class="avatar-option" onclick="pickEmoji('🥷', this)">🥷</div>
+          </div>
+
+          <label class="custom-file-upload">
+            📷 O sube una foto desde tu galería
+            <input type="file" id="player-img" accept="image/*" style="display:none;" onchange="handleImageUpload(event)">
+          </label>
+        </div>
+
+        <!-- Lista Marcador -->
+        <div class="players-list" id="players-list">
+          <!-- Jugadores creados -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script>
+    /* ============================================================
+       BASE DE DATOS: +105 RETOS CON TIEMPO EXPLICITO
+    ============================================================ */
+    const RETOS = [
+      // FÍSICOS Y MOVIMIENTO
+      { title: "El Flamenco Ciego", desc: "Ponte a la pata coja, cierra los ojos y aguanta 10 segundos sin caerte ni abrir los brazos.", cat: "Movimiento", place: "todos", emoji: "🦩", time: 10 },
+      { title: "El Suelo es Lava", desc: "¡Tienes 5 segundos para subirte a algún lugar sin tocar el suelo!", cat: "Movimiento", place: "todos", emoji: "🌋", time: 5 },
+      { title: "Caminata de Cangrejo", desc: "Camina a cuatro patas boca arriba como un cangrejo hasta la otra punta de la habitación o hasta el siguiente árbol.", cat: "Movimiento", place: "todos", emoji: "🦀" },
+      { title: "Salto de Astronauta", desc: "Haz 5 saltos lo más altos que puedas, aterrizando en cuclillas y diciendo en el aire '¡Houston, sin gravedad!'.", cat: "Movimiento", place: "todos", emoji: "🚀" },
+      { title: "Giro Ninja Silencioso", desc: "Da 3 vueltas completas sobre ti mismo y termina en posición ninja sin hacer ni el más mínimo sonido.", cat: "Movimiento", place: "todos", emoji: "🥷" },
+      { title: "La Carrera del Pingüino", desc: "Junta los tobillos y camina como un pingüino de lado a lado sin separar los pies.", cat: "Movimiento", place: "todos", emoji: "🐧" },
+      { title: "El Puente Humano", desc: "Haz una postura de puente (o plancha) y cuenta despacio del 1 al 12 sin que tu barriga toque el suelo.", cat: "Movimiento", place: "todos", emoji: "🌉", time: 12 },
+      { title: "Pato Veloz", desc: "Agáchate en cuclillas y camina como un patito diciendo 'cuac cuac' durante 15 pasos.", cat: "Movimiento", place: "todos", emoji: "🦆" },
+      { title: "Salto de Rana Pro", desc: "Haz 6 saltos de rana enormes tocando el suelo con las dos manos antes de cada despegue.", cat: "Movimiento", place: "todos", emoji: "🐸" },
+      { title: "Toques de Rodilla", desc: "Salta llevando las rodillas al pecho 8 veces seguidas sin detenerte.", cat: "Movimiento", place: "todos", emoji: "⚡" },
+      { title: "El Árbol en la Tormenta", desc: "Haz la postura del árbol (un pie pegado a la rodilla contraria) durante 15 segundos mientras los demás intentan hacerte reír.", cat: "Equilibrio", place: "todos", emoji: "🌳", time: 15 },
+      { title: "Gato y Perro", desc: "A cuatro patas, arquea la espalda hacia arriba como gato enfadado y luego hacia abajo sacando pecho 5 veces.", cat: "Movimiento", place: "casa", emoji: "🐱" },
+      { title: "Carrera hacia Atrás", desc: "Camina 20 pasos de espaldas con mucho cuidado mirando por encima del hombro.", cat: "Movimiento", place: "todos", emoji: "🔙" },
+
+      // RISA Y ACTUACIÓN / TEATRO
+      { title: "El Robot Descompuesto", desc: "Habla y muévete como un robot al que se le están acabando las pilas durante 20 segundos.", cat: "Risas", place: "todos", emoji: "🤖", time: 20 },
+      { title: "La Estatua de Cera", desc: "Pon una cara divertidísima y quédate completamente congelado durante 15 segundos sin parpadear.", cat: "Risas", place: "todos", emoji: "🗿", time: 15 },
+      { title: "Monólogo Alienígena", desc: "Explícale al grupo cómo se come un plátano usando un idioma inventado de otro planeta durante 20 segundos.", cat: "Risas", place: "todos", emoji: "👽", time: 20 },
+      { title: "Mímica de Animal Misterioso", desc: "Imita a un animal con gestos y movimientos (¡sin ningún sonido!) hasta que alguien adivine cuál es en 30 segundos.", cat: "Teatro", place: "todos", emoji: "🎭", time: 30 },
+      { title: "El Espejo Mágico", desc: "Elige a un compañero e imita exactamente cada uno de sus movimientos durante 30 segundos como si fueras su reflejo.", cat: "Risas", place: "todos", emoji: "🪞", time: 30 },
+      { title: "Risa Contagiosa", desc: "Ponte muy serio cara a cara con alguien y di '¡Ja!'... él dice '¡Ja, Ja!' y tú '¡Ja, Ja, Ja!'. El primero que se ría pierde.", cat: "Risas", place: "todos", emoji: "😂" },
+      { title: "Chef Italiano Dramático", desc: "Finge preparar una pizza gigante invisible usando manos y gestos muy exagerados durante 20 segundos.", cat: "Teatro", place: "todos", emoji: "🍕", time: 20 },
+      { title: "Pájaros Locos", desc: "Mueve los brazos como un pájaro e intenta rascarte la espalda con el codo.", cat: "Risas", place: "todos", emoji: "🦜" },
+      { title: "Abuelo sin Dientes", desc: "Habla durante 20 segundos tapándote los dientes con los labios contando qué hiciste hoy.", cat: "Risas", place: "todos", emoji: "👴", time: 20 },
+      { title: "Presentador de Circo", desc: "Presenta al otro jugador con tu voz más potente y elegante como el artista más asombroso del mundo en 20 segundos.", cat: "Teatro", place: "todos", emoji: "🎪", time: 20 },
+
+      // OBSERVACIÓN E INGENIO
+      { title: "Detective de Colores", desc: "Encuentra con la vista 3 cosas rojas, 2 verdes y 1 amarilla antes de contar hasta 15.", cat: "Ingenio", place: "todos", emoji: "🔍", time: 15 },
+      { title: "Palabras Encadenadas", desc: "Di una palabra y el otro debe decir otra que empiece con la última sílaba. ¡Deben lograr 6 palabras seguidas!", cat: "Mente", place: "todos", emoji: "🔗" },
+      { title: "El Abecedario Relámpago", desc: "Di 5 nombres de animales que comiencen con diferentes letras del abecedario sin dudar más de 3 segundos.", cat: "Mente", place: "todos", emoji: "🔤", time: 15 },
+      { title: "El Radar Silencioso", desc: "Cierra los ojos durante 15 segundos en silencio absoluto. Luego di 3 sonidos diferentes que hayas escuchado.", cat: "Ingenio", place: "todos", emoji: "👂", time: 15 },
+      { title: "Veo Veo Táctil", desc: "Cierra los ojos. Alguien te pondrá un objeto cotidiano en las manos y tendrás 10 segundos para adivinar qué es solo tocándolo.", cat: "Ingenio", place: "casa", emoji: "✋", time: 10 },
+      { title: "Rimas Divertidas", desc: "Busca 3 palabras que rimen con la palabra 'CAMIÓN' en menos de 15 segundos.", cat: "Mente", place: "todos", emoji: "🎵", time: 15 },
+      { title: "La Pregunta Prohibida", desc: "Durante 1 minuto debes responder a las preguntas que te hagan SIN decir las palabras 'SÍ', 'NO' ni 'BLANCO'.", cat: "Mente", place: "todos", emoji: "🚫", time: 60 },
+      { title: "Memoria Flash", desc: "Mira a tu alrededor 10 segundos. Cierra los ojos y dinos cuántas personas o cuadros hay en el lugar.", cat: "Mente", place: "todos", emoji: "🧠", time: 10 },
+      { title: "Trabalenguas Imposible", desc: "Di 3 veces seguidas y muy rápido: 'Tres tristes tigres tragaban trigo en un trigal' en menos de 15 segundos.", cat: "Mente", place: "todos", emoji: "🗣️", time: 15 },
+      { title: "De Mayor a Menor", desc: "Cuenta hacia atrás del 20 al 0 mientras das saltitos suaves con un solo pie durante 20 segundos.", cat: "Mente", place: "todos", emoji: "🔟", time: 20 },
+
+      // CALLE / EXTERIOR
+      { title: "Cazador de Letras", desc: "Busca en carteles o señales de la calle la letra 'A', la letra 'M' y la letra 'S' en menos de 30 segundos.", cat: "Calle", place: "calle", emoji: "🚸", time: 30 },
+      { title: "La Carrera de Sombras", desc: "Intenta pisar la sombra de tu compañero sin que él pise la tuya durante 20 segundos.", cat: "Calle", place: "calle", emoji: "👥", time: 20 },
+      { title: "El Semáforo Humano", desc: "Cuando el líder diga 'Verde' corres en el sitio; 'Amarillo' vas a cámara lenta; 'Rojo' te congelas durante 30 segundos.", cat: "Calle", place: "calle", emoji: "🚦", time: 30 },
+      { title: "Contador de Coches", desc: "Elige un color. El primero en ver pasar 3 coches de ese color gana el punto.", cat: "Calle", place: "calle", emoji: "🚗" },
+      { title: "Misión Formas de Nubes", desc: "Mira al cielo y encuentra una nube que tenga forma de animal o de cosa divertida y descríbela.", cat: "Calle", place: "calle", emoji: "☁️" },
+      { title: "Equilibrio en la Línea", desc: "Camina poniendo un pie justo delante del otro siguiendo una línea del suelo sin salirte durante 15 pasos.", cat: "Calle", place: "calle", emoji: "➖" },
+      { title: "El Radar de Perros", desc: "El primero en encontrar un perro paseando por la calle debe imitar su ladrido suavemente.", cat: "Calle", place: "calle", emoji: "🐕" },
+      { title: "Detective de Hojas", desc: "Encuentra en el suelo una hoja seca y una hoja verde sin arrancar ninguna planta antes de 30 segundos.", cat: "Calle", place: "calle", emoji: "🍂", time: 30 },
+      { title: "Salto de Balcones", desc: "Cuenta cuántos balcones con plantas ves en la fachada más cercana antes de 10 segundos.", cat: "Calle", place: "calle", emoji: "🪴", time: 10 },
+      { title: "El Abrazo al Árbol", desc: "Camina a paso ligero hasta el árbol más cercano y dale un abrazo agradeciéndole por el oxígeno.", cat: "Calle", place: "calle", emoji: "🌲" },
+
+      // CASA
+      { title: "Búsqueda del Calcetín Gemelo", desc: "Toca con la punta del dedo un calcetín y vuelve a tu lugar en menos de 10 segundos.", cat: "Casa", place: "casa", emoji: "🧦", time: 10 },
+      { title: "El Guardián del Silencio", desc: "Cruza el pasillo o la habitación caminando como un ratoncito sin que el suelo cruja durante 15 segundos.", cat: "Casa", place: "casa", emoji: "🐭", time: 15 },
+      { title: "Tocar Madera", desc: "Toca 4 objetos distintos que estén hechos de madera auténtica en menos de 12 segundos.", cat: "Casa", place: "casa", emoji: "🪵", time: 12 },
+      { title: "Foco Frío", desc: "Corre y toca la puerta del frigorífico con el codo antes de 8 segundos.", cat: "Casa", place: "casa", emoji: "❄️", time: 8 },
+      { title: "La Almohada Malabarista", desc: "Toma un cojín, lánzalo al aire, da una palmada y atrápalo antes de que caiga.", cat: "Casa", place: "casa", emoji: "🛋️" },
+      { title: "Orden Exprés", desc: "Encuentra una cosa que esté descolocada en el salón o tu cuarto y guárdala en su lugar exacto antes de 20 segundos.", cat: "Casa", place: "casa", emoji: "✨", time: 20 },
+      { title: "El Monstruo de la Cama", desc: "Gatea por debajo de una mesa o ponte a ras del suelo y saluda como un simpático monstruo.", cat: "Casa", place: "casa", emoji: "👾" },
+
+      // MÁS RETOS
+      { title: "Giro de Helicóptero", desc: "Extiende los brazos y gira 5 veces a la derecha y 5 a la izquierda sin marearte.", cat: "Movimiento", place: "todos", emoji: "🚁" },
+      { title: "Pancita y Cabeza", desc: "Frótate la barriga en círculos con una mano mientras te das palmaditas en la cabeza con la otra durante 10 segundos.", cat: "Coordinación", place: "todos", emoji: "🤹", time: 10 },
+      { title: "La Carrera del Gusano", desc: "Túmbate en el suelo y muévete hacia adelante ondulando tu cuerpo durante 15 segundos.", cat: "Movimiento", place: "casa", emoji: "🐛", time: 15 },
+      { title: "Mímica de Oficios", desc: "Imita ser un bombero o un astronauta hasta que adivinen tu profesión en menos de 30 segundos.", cat: "Teatro", place: "todos", emoji: "👨‍🚒", time: 30 },
+      { title: "El Chiste Exprés", desc: "Cuenta tu mejor chiste o frase cómica en menos de 20 segundos.", cat: "Risas", place: "todos", emoji: "😆", time: 20 },
+      { title: "Superhéroe en Despegue", desc: "Haz tu mejor pose de superhéroe volando y quédate firme como una roca 12 segundos.", cat: "Movimiento", place: "todos", emoji: "🦸", time: 12 },
+      { title: "Aplaude por la Espalda", desc: "Pasa los brazos por detrás de la espalda e intenta aplaudir 10 veces en menos de 10 segundos.", cat: "Coordinación", place: "todos", emoji: "👏", time: 10 },
+      { title: "Adivina el Dibujo en la Espalda", desc: "Con tu dedo dibuja un sol, un corazón o un número en la espalda para que lo adivinen en 20 segundos.", cat: "Ingenio", place: "todos", emoji: "✍️", time: 20 },
+      { title: "Grito Mudo", desc: "Haz la cara de gritar con toda tu fuerza pero sin ningún sonido durante 8 segundos.", cat: "Risas", place: "todos", emoji: "😱", time: 8 },
+      { title: "El Duelo de Miradas", desc: "Mira fijamente a los ojos a tu rival durante 30 segundos. El primero en reírse pierde.", cat: "Risas", place: "todos", emoji: "👀", time: 30 },
+      { title: "Canto Operístico", desc: "Canta 'Cumpleaños Feliz' con voz de ópera dramática durante 15 segundos.", cat: "Risas", place: "todos", emoji: "🎤", time: 15 },
+      { title: "El Ninja Agachado", desc: "Haz una sentadilla profunda y aguanta abajo contando hasta 10 con una sonrisa.", cat: "Movimiento", place: "todos", emoji: "🥋", time: 10 },
+      { title: "5 Animales con Cola Larga", desc: "Nombra 5 animales con cola larga antes de que cuenten hasta 10.", cat: "Mente", place: "todos", emoji: "🐒", time: 10 },
+      { title: "La Torre Humana", desc: "Estírate lo más alto que puedas de puntillas con las manos al cielo 10 segundos.", cat: "Movimiento", place: "todos", emoji: "🦒", time: 10 },
+      { title: "Sonidos de Granja", desc: "Haz el sonido de una vaca, un gallo, un cerdo y una oveja en menos de 8 segundos.", cat: "Risas", place: "todos", emoji: "🚜", time: 8 },
+      { title: "Cero Cosquillas", desc: "Aguanta cosquillas en las plantas de los pies o costillas durante 5 segundos sin gritar.", cat: "Risas", place: "todos", emoji: "🪶", time: 5 },
+      { title: "El Baile Loco", desc: "Inventa un paso de baile que combine hombros y pata coja durante 15 segundos.", cat: "Risas", place: "todos", emoji: "💃", time: 15 },
+      { title: "Pies en el Aire", desc: "Siéntate en el suelo y mantén los pies en el aire sin tocar nada durante 10 segundos.", cat: "Movimiento", place: "casa", emoji: "🦶", time: 10 },
+      { title: "Carrera de Caracoles", desc: "Compite para ver quién llega más lento al otro lado sin parar durante 20 segundos.", cat: "Risas", place: "todos", emoji: "🐌", time: 20 },
+      { title: "Buscador de Triángulos", desc: "Encuentra en menos de 15 segundos alguna forma triangular en tu entorno.", cat: "Ingenio", place: "todos", emoji: "📐", time: 15 },
+      { title: "Mueve las Orejas", desc: "Intenta mover las orejas sin tocarlas durante 10 segundos.", cat: "Risas", place: "todos", emoji: "👂", time: 10 },
+      { title: "Contar con los Ojos Cerrados", desc: "Cierra los ojos e intenta adivinar cuándo han pasado exactamente 15 segundos.", cat: "Mente", place: "todos", emoji: "⏱️", time: 15 },
+      { title: "Cero Parpadeo", desc: "Aguanta 12 segundos mirando al techo sin parpadear ni una sola vez.", cat: "Control", place: "todos", emoji: "👀", time: 12 },
+      { title: "Pies Calientes", desc: "Trota en el sitio como si el suelo hirviera durante 10 segundos.", cat: "Movimiento", place: "todos", emoji: "🔥", time: 10 },
+      { title: "Tocar 3 Cosas Frías", desc: "Toca 3 objetos fríos al tacto (metal, cristal, piedra) antes de 15 segundos.", cat: "Ingenio", place: "todos", emoji: "🧊", time: 15 },
+      { title: "Acrobacia del Pulgar", desc: "Gira los pulgares uno alrededor del otro a máxima velocidad durante 10 segundos.", cat: "Coordinación", place: "todos", emoji: "👍", time: 10 },
+      { title: "El Escalador Invisible", desc: "Mueve brazos y piernas como escalando una montaña empinada durante 15 segundos.", cat: "Movimiento", place: "todos", emoji: "🧗", time: 15 },
+      { title: "5 Cosas que Vuelan", desc: "Nombra 5 cosas que vuelen que NO sean pájaros antes de 10 segundos.", cat: "Mente", place: "todos", emoji: "🚁", time: 10 },
+      { title: "Tocar Algo Amarillo", desc: "¡Tienes 7 segundos para correr y tocar algo amarillo!", cat: "Ingenio", place: "todos", emoji: "🟡", time: 7 },
+      { title: "La Muralla China", desc: "Empujad suavemente espalda contra espalda durante 5 segundos.", cat: "Fuerza", place: "todos", emoji: "🧱", time: 5 },
+      { title: "La Palma Rápida", desc: "Intenta aplaudir 15 veces en menos de 5 segundos.", cat: "Agilidad", place: "todos", emoji: "⚡", time: 5 },
+      { title: "La Tabla Firme", desc: "Ponte en plancha apoyando los codos durante 10 segundos.", cat: "Fuerza", place: "casa", emoji: "🛹", time: 10 },
+      { title: "El Saludo Secreto", desc: "Inventa en 10 segundos un saludo secreto con tu amigo.", cat: "Creatividad", place: "todos", emoji: "🤝", time: 10 }
+    ];
+
+    /* ============================================================
+       ESTADO Y PERSISTENCIA
+    ============================================================ */
+    let players = JSON.parse(localStorage.getItem('retokids_players')) || [
+      { id: 1, name: "Lucas", avatar: "🦁", isCustomImg: false, score: 0 },
+      { id: 2, name: "Sofía", avatar: "🚀", isCustomImg: false, score: 0 }
+    ];
+
+    let currentFilter = 'todos';
+    let currentEmoji = '🦁';
+    let customImageBase64 = null;
+    let currentReto = null;
+
+    // Estado del temporizador
+    let timerTotal = 0;
+    let timerRemaining = 0;
+    let timerInterval = null;
+    let timerRunning = false;
+    const CIRCUMFERENCE = 2 * Math.PI * 34; // r=34 -> ~213.6
+
+    // Audio
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    
+    function playBeep(freq = 520, type = 'sine', duration = 0.15) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      try {
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + duration);
+      } catch (e) {}
+    }
+
+    function playFanfare() {
+      setTimeout(() => playBeep(440, 'triangle', 0.12), 0);
+      setTimeout(() => playBeep(554, 'triangle', 0.12), 120);
+      setTimeout(() => playBeep(659, 'triangle', 0.15), 240);
+      setTimeout(() => playBeep(880, 'triangle', 0.35), 380);
+    }
+
+    /* ============================================================
+       LÓGICA DEL TEMPORIZADOR
+    ============================================================ */
+    function setupTimerForReto(reto) {
+      clearInterval(timerInterval);
+      timerRunning = false;
+      const box = document.getElementById('timer-box');
+      const timeBadge = document.getElementById('c-time-badge');
+
+      // Buscar tiempo explícito o detectar en la descripción
+      let seconds = reto.time || null;
+      if (!seconds) {
+        const match = reto.desc.match(/(\d+)\s*segundos?/i);
+        if (match) seconds = parseInt(match[1], 10);
+      }
+
+      if (seconds && seconds > 0) {
+        timerTotal = seconds;
+        timerRemaining = seconds;
+        box.style.display = 'flex';
+        timeBadge.style.display = 'inline-block';
+        timeBadge.textContent = `⏱️ ${seconds}s`;
+        document.getElementById('timer-badge-val').textContent = `${seconds}s`;
+        updateTimerDisplay();
+      } else {
+        box.style.display = 'none';
+        timeBadge.style.display = 'none';
+      }
+    }
+
+    function updateTimerDisplay() {
+      const digits = document.getElementById('timer-digits');
+      const box = document.getElementById('timer-box');
+      const btn = document.getElementById('timer-main-btn');
+      const btnText = document.getElementById('timer-btn-text');
+      const btnIcon = document.getElementById('timer-btn-icon');
+      const msg = document.getElementById('timer-msg');
+      const circle = document.getElementById('timer-svg-circle');
+
+      digits.textContent = timerRemaining;
+
+      // Calcular offset de la barra circular
+      const ratio = timerTotal > 0 ? timerRemaining / timerTotal : 0;
+      const offset = CIRCUMFERENCE * (1 - ratio);
+      circle.style.strokeDashoffset = offset;
+
+      // Actualizar colores
+      box.className = 'timer-container';
+      if (timerRemaining === 0) {
+        box.classList.add('finished');
+        circle.style.stroke = 'var(--success)';
+        btn.className = 'btn-timer-main finished';
+        btnIcon.textContent = '🔄';
+        btnText.textContent = '¡Repetir!';
+        msg.textContent = '🎉 ¡TIEMPO TERMINADO! ¿Quién lo logró?';
+      } else if (timerRunning) {
+        box.classList.add('running');
+        if (timerRemaining <= 3) {
+          box.classList.add('urgent');
+          circle.style.stroke = 'var(--danger)';
+          msg.textContent = '🚨 ¡Últimos segundos!';
+        } else {
+          circle.style.stroke = 'var(--primary)';
+          msg.textContent = '⏱️ ¡El tiempo está corriendo!';
+        }
+        btn.className = 'btn-timer-main running';
+        btnIcon.textContent = '⏸️';
+        btnText.textContent = 'Pausar';
+      } else {
+        circle.style.stroke = 'var(--primary)';
+        btn.className = 'btn-timer-main';
+        btnIcon.textContent = '▶️';
+        btnText.textContent = timerRemaining < timerTotal ? 'Continuar' : '¡Iniciar!';
+        msg.textContent = timerRemaining < timerTotal ? `Pausado en ${timerRemaining}s` : 'Pulsa ¡Iniciar! cuando estés listo';
+      }
+    }
+
+    function toggleTimer() {
+      if (timerRemaining === 0) {
+        resetTimer();
+        startTimer();
+        return;
+      }
+
+      if (timerRunning) {
+        pauseTimer();
+      } else {
+        startTimer();
+      }
+    }
+
+    function startTimer() {
+      if (timerRunning) return;
+      playBeep(600, 'sine', 0.1);
+      timerRunning = true;
+      updateTimerDisplay();
+
+      timerInterval = setInterval(() => {
+        if (timerRemaining <= 1) {
+          timerRemaining = 0;
+          clearInterval(timerInterval);
+          timerRunning = false;
+          playFanfare();
+          triggerConfetti();
+          updateTimerDisplay();
+        } else {
+          timerRemaining--;
+          if (timerRemaining <= 3) {
+            playBeep(900 + (3 - timerRemaining) * 150, 'triangle', 0.1);
+          } else {
+            playBeep(750, 'sine', 0.05);
+          }
+          updateTimerDisplay();
+        }
+      }, 1000);
+    }
+
+    function pauseTimer() {
+      playBeep(450, 'sine', 0.08);
+      clearInterval(timerInterval);
+      timerRunning = false;
+      updateTimerDisplay();
+    }
+
+    function resetTimer() {
+      playBeep(400, 'sine', 0.08);
+      clearInterval(timerInterval);
+      timerRunning = false;
+      timerRemaining = timerTotal;
+      updateTimerDisplay();
+    }
+
+    function adjustTimer(delta) {
+      playBeep(500, 'sine', 0.08);
+      timerTotal = Math.max(3, timerTotal + delta);
+      document.getElementById('timer-badge-val').textContent = `${timerTotal}s`;
+      if (!timerRunning) {
+        timerRemaining = timerTotal;
+      } else {
+        timerRemaining = Math.max(1, timerRemaining + delta);
+      }
+      updateTimerDisplay();
+    }
+
+    /* ============================================================
+       LÓGICA DE RETOS
+    ============================================================ */
+    function setFilter(filter, el) {
+      document.querySelectorAll('.filter-chip').forEach(b => b.classList.remove('active'));
+      el.classList.add('active');
+      currentFilter = filter;
+      nextChallenge();
+    }
+
+    function getFilteredRetos() {
+      if (currentFilter === 'todos') return RETOS;
+      return RETOS.filter(r => r.place === 'todos' || r.place === currentFilter);
+    }
+
+    function nextChallenge() {
+      const list = getFilteredRetos();
+      const randomIndex = Math.floor(Math.random() * list.length);
+      const reto = list[randomIndex];
+      currentReto = reto;
+
+      playBeep(400, 'sine', 0.08);
+
+      const card = document.getElementById('card');
+      card.style.animation = 'none';
+      void card.offsetWidth;
+      card.style.animation = 'popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275)';
+
+      document.getElementById('c-category').textContent = reto.cat;
+      document.getElementById('c-place').textContent = reto.place === 'casa' ? '🏠 En Casa' : (reto.place === 'calle' ? '🌳 En Calle' : '🌍 Donde Sea');
+      document.getElementById('c-emoji').textContent = reto.emoji;
+      document.getElementById('c-title').textContent = reto.title;
+      document.getElementById('c-desc').textContent = reto.desc;
+
+      // Configurar temporizador si tiene tiempo
+      setupTimerForReto(reto);
+    }
+
+    /* ============================================================
+       JUGADORES Y PUNTUACIÓN
+    ============================================================ */
+    function savePlayers() {
+      localStorage.setItem('retokids_players', JSON.stringify(players));
+      renderPlayers();
+      renderQuickAwardButtons();
+    }
+
+    function renderPlayers() {
+      const listEl = document.getElementById('players-list');
+      listEl.innerHTML = '';
+
+      const sorted = [...players].sort((a,b) => b.score - a.score);
+
+      sorted.forEach(p => {
+        const item = document.createElement('div');
+        item.className = 'player-card';
+
+        const avatarContent = p.isCustomImg 
+          ? `<img src="${p.avatar}" alt="${p.name}">`
+          : p.avatar;
+
+        item.innerHTML = `
+          <div class="player-info">
+            <div class="player-avatar">${avatarContent}</div>
+            <div>
+              <div class="player-name">${p.name}</div>
+              <small style="color:#64748b; font-weight:700;">${p.score} puntos</small>
+            </div>
+          </div>
+          <div class="score-controls">
+            <button class="btn-circle btn-minus" onclick="modifyScore(${p.id}, -1)">-</button>
+            <div class="score-badge">${p.score}</div>
+            <button class="btn-circle btn-plus" onclick="modifyScore(${p.id}, 1)">+</button>
+            <button style="border:none;background:transparent;font-size:1.1rem;margin-left:6px;cursor:pointer;" onclick="deletePlayer(${p.id})">🗑️</button>
+          </div>
+        `;
+        listEl.appendChild(item);
+      });
+    }
+
+    function renderQuickAwardButtons() {
+      const quickBar = document.getElementById('quick-players');
+      quickBar.innerHTML = '';
+
+      if (players.length === 0) {
+        quickBar.innerHTML = '<span style="font-size:0.85rem;color:#94a3b8;">¡Agrega jugadores en la pestaña Puntos!</span>';
+        return;
+      }
+
+      players.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = 'quick-player-btn';
+        
+        const avatarMini = p.isCustomImg 
+          ? `<img src="${p.avatar}" style="width:20px;height:20px;border-radius:50%;object-fit:cover;">`
+          : p.avatar;
+
+        btn.innerHTML = `${avatarMini} <span>${p.name}</span>`;
+        btn.onclick = () => {
+          modifyScore(p.id, 1);
+          triggerConfetti();
+          playFanfare();
+          setTimeout(nextChallenge, 800);
+        };
+        quickBar.appendChild(btn);
+      });
+    }
+
+    function modifyScore(id, delta) {
+      const p = players.find(x => x.id === id);
+      if (p) {
+        p.score = Math.max(0, p.score + delta);
+        if (delta > 0) playBeep(650, 'sine', 0.1);
+        savePlayers();
+      }
+    }
+
+    function deletePlayer(id) {
+      if (confirm("¿Seguro que deseas eliminar a este participante?")) {
+        players = players.filter(x => x.id !== id);
+        savePlayers();
+      }
+    }
+
+    function pickEmoji(emoji, el) {
+      customImageBase64 = null;
+      currentEmoji = emoji;
+      document.querySelectorAll('.avatar-option').forEach(e => e.classList.remove('selected'));
+      el.classList.add('selected');
+    }
+
+    function handleImageUpload(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const reader = new FileReader();
+      reader.onload = function(event) {
+        const img = new Image();
+        img.onload = function() {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
+          canvas.width = 120;
+          canvas.height = 120;
+          ctx.drawImage(img, 0, 0, 120, 120);
+          customImageBase64 = canvas.toDataURL('image/jpeg', 0.8);
+          document.querySelectorAll('.avatar-option').forEach(el => el.classList.remove('selected'));
+          alert("¡Foto seleccionada correctamente!");
+        };
+        img.src = event.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function addPlayer() {
+      const nameInput = document.getElementById('player-name');
+      const name = nameInput.value.trim();
+      if (!name) {
+        alert("Escribe el nombre del participante");
+        return;
+      }
+
+      const newPlayer = {
+        id: Date.now(),
+        name: name,
+        avatar: customImageBase64 ? customImageBase64 : currentEmoji,
+        isCustomImg: !!customImageBase64,
+        score: 0
+      };
+
+      players.push(newPlayer);
+      nameInput.value = '';
+      customImageBase64 = null;
+      savePlayers();
+      playBeep(700, 'triangle', 0.2);
+    }
+
+    function switchView(viewName) {
+      playBeep(350, 'sine', 0.05);
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+
+      if (viewName === 'retos') {
+        document.querySelectorAll('.tab-btn')[0].classList.add('active');
+        document.getElementById('view-retos').classList.add('active');
+      } else {
+        document.querySelectorAll('.tab-btn')[1].classList.add('active');
+        document.getElementById('view-jugadores').classList.add('active');
+      }
+    }
+
+    /* Confeti */
+    const canvas = document.getElementById('confetti');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    function triggerConfetti() {
+      particles = [];
+      const colors = ['#6366f1', '#f59e0b', '#10b981', '#ec4899', '#3b82f6'];
+      for (let i = 0; i < 60; i++) {
+        particles.push({
+          x: canvas.width / 2,
+          y: canvas.height / 2,
+          r: Math.random() * 6 + 4,
+          dx: (Math.random() - 0.5) * 12,
+          dy: (Math.random() - 0.7) * 14,
+          color: colors[Math.floor(Math.random() * colors.length)],
+          tilt: Math.random() * 10,
+          tiltAngle: 0,
+          tiltAngleInc: (Math.random() * 0.07) + 0.05
+        });
+      }
+      requestAnimationFrame(renderConfetti);
+    }
+
+    function renderConfetti() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      let alive = false;
+      particles.forEach(p => {
+        p.tiltAngle += p.tiltAngleInc;
+        p.y += (Math.cos(p.tiltAngle) + 1 + p.r / 2) / 2 + 3;
+        p.x += p.dx;
+        p.dx *= 0.98;
+        if (p.y < canvas.height) alive = true;
+
+        ctx.beginPath();
+        ctx.lineWidth = p.r / 2;
+        ctx.strokeStyle = p.color;
+        ctx.moveTo(p.x + p.tilt + p.r / 4, p.y);
+        ctx.lineTo(p.x + p.tilt, p.y + p.tilt + p.r / 4);
+        ctx.stroke();
+      });
+
+      if (alive) requestAnimationFrame(renderConfetti);
+      else ctx.clearRect(0, 0, canvas.width, canvas.height);
+    }
+
+    // Inicialización
+    document.getElementById('challenge-counter').textContent = `+${RETOS.length} Retos`;
+    savePlayers();
+    nextChallenge();
+  </script>
+</body>
+</html>
